@@ -78,18 +78,18 @@ def calculate_mul_div_blocks(s)
   first_n = ""
   second_n = ""
   op_index = ""
-  log_verbose("Calculating formula blocks, the data is #{s}")
+  log_verbose("Calculating formula blocks, the data is #{s}\n\n")
   s.each_with_index { |v, i|
     log_verbose("Checking index #{i} in array, value present #{v}")
-    if v == "*"
+    if v == "*" or v == "/"
       log_verbose("Found operator '#{v}'")
       op_index = i
-      # Find number left of operand
+      # Find left operand
       range = i-1..0
       (range.first).downto(range.last).each { |ln|
         log_verbose("Scanning left from index #{ln}, current character #{s[ln]}")
         if validate_number(s[ln])
-          first_n += s[ln]
+          first_n = s[ln]
           s[ln] = "REMOVE"
         else
           log_verbose("Left operand: #{first_n}")
@@ -100,13 +100,12 @@ def calculate_mul_div_blocks(s)
       (i + 1..s.length - 1).each do |rn|
         log_verbose("Scanning right from index #{rn}, current character #{s[rn]}")
         if validate_number(s[rn])
-          second_n += s[rn]
+          second_n = s[rn]
           s[rn] = "REMOVE"
         else
           log_verbose("Right operand: #{second_n}")
           # Calculate using the left and right operand with the found operator and replace it in the array
-          op = s[op_index]
-          result = $operations[op].call(first_n.to_f, second_n.to_f).to_s
+          result = $operations[s[op_index]].call(first_n.to_f, second_n.to_f).to_s
           s[op_index] = result
           log_verbose("Removing empty elements")
           s.delete("REMOVE")
@@ -115,13 +114,14 @@ def calculate_mul_div_blocks(s)
       end
     end
   }
+  return s
 end
 
 # Important, everything needs to be floats
 s = convert_ints_to_floats(s)
 
 while s.include?("*") or s.include?("/") do
-  calculate_mul_div_blocks(s)
+  s = calculate_mul_div_blocks(s)
 end
 
 puts "The calculation is now complete, the result was\n'#{s}'"
