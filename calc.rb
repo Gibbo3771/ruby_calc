@@ -1,4 +1,5 @@
 # More advanced version of the basic calculator, allows you to run it with args and pass in a single mathematical operation
+# This works by passing in a mathem formula which is then interpreted and calculated
 require 'optparse'
 
 operation = nil
@@ -6,8 +7,8 @@ $options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: calc.rb [options]"
 
-  $options[:operation] = "No operation specified"
-  opts.on("-o", "--operation=o", "Takes a mathematical question and returns an answer, it can add, subtract, divide and multiply") do |o|
+  $options[:operation] = "No formula specified"
+  opts.on("-o", "--operation=o", "Takes a mathematical formula and returns an answer, it can add, subtract, divide and multiply.") do |o|
     $options[:operation] = o
   end
 
@@ -16,13 +17,13 @@ OptionParser.new do |opts|
     $options[:verbose] = true
   end
 
-  opts.on("-h", "--help", "Dispaly this screen") do
+  opts.on("-h", "--help", "Display this screen") do
     puts opts
   end
 end.parse!
 
 # Checks if the calculator is verbose and prints whater is passed in
-def be_verbose(output)
+def log_verbose(output)
   if $options[:verbose] == true
     t = Time.now.strftime("%H:%M:%S:%L -")
     # t = t.strftime("%H:%M:%S:%L")
@@ -32,85 +33,98 @@ end
 
 puts "Being verbose!" if $options[:verbose]
 
-if $options[:operation] == "No operation specified"
-  be_verbose("No options has been specified and no calulation can take place, exiting")
+if $options[:operation] == "No formula specified"
+  log_verbose("No option has been specified and no calulation can take place, exiting")
   exit
 end
 
-be_verbose("Starting calculation")
-be_verbose("Found operation '#{$options[:operation]}', carrying out calculation")
+log_verbose("Starting calculation")
+log_verbose("Found formula '#{$options[:operation]}', carrying out calculation")
 
-be_verbose("Populating lookup table")
-add = -> (n1, n2) { be_verbose("Adding #{n1} and #{n2}"); return n1 + n2}
-sub = -> (n1, n2) { be_verbose("Subtracing #{n1} and #{n2}"); return n1 - n2}
-mul = -> (n1, n2) { be_verbose("Multiplying #{n1} and #{n2}"); return n1 * n2}
-div = -> (n1, n2) { be_verbose("Dividing #{n1} and #{n2}"); return n1 / n2}
+log_verbose("Populating lookup tables")
+add = -> (n1, n2) { log_verbose("Adding #{n1} and #{n2}"); return n1 + n2}
+sub = -> (n1, n2) { log_verbose("Subtracing #{n1} and #{n2}"); return n1 - n2}
+mul = -> (n1, n2) { log_verbose("Multiplying #{n1} and #{n2}"); return n1 * n2}
+div = -> (n1, n2) { log_verbose("Dividing #{n1} and #{n2}"); return n1 / n2}
 # Lookup table
-operations = {"+" => add, "-" => sub, "*" => mul, "/" => div}
-be_verbose("Lookup tables populated")
+$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div}
+log_verbose("Lookup tables populated")
 # Need to remember these for string scanning
-$first_n = "[NOT SET]", $second_n = "[NOT SET]", $block_n = "", $op = "[NOT SET]"
+#$first_n = "[NOT SET]", $second_n = "[NOT SET]", $block_n = "", $op = "[NOT SET]"
 # Assign to shorthand
-s = $options[:operation]
-be_verbose("Removing whitespace from operation #{s}")
-# Remove whitespace
-s = s.tr(" ", "")
-be_verbose("Whitespace removed, new format : #{s}")
+s = $options[:operation].split(" ")
 
-def is_first_n_set
-  return !($first_n.eql? "[NOT SET]")
+# Checks if a given string contains a valid number. Only floats are valid
+def validate_number(string)
+  log_verbose("Checking if string '#{string}' is a valid number: #{string.to_f.to_s == string}")
+  return string.to_f.to_s == string
 end
 
-def is_second_n_set
-  return !($second_n.eql? "[NOT SET]")
+# Converts all the integers in the array to floats, this makes it easier to code, not really for anything else
+def convert_ints_to_floats(s)
+  log_verbose("Converting all integers in #{s} to floats")
+  (0..s.length - 1).each do |i|
+    c = s[i]
+      if c.to_i.to_s == c
+        s[i] = c.to_f.to_s
+      end
+  end
+  log_verbose("Every integer in #{s} is now a float")
+  return s
 end
 
-def is_op_set
-  return !($op.eql? "[NOT SET]")
-end
-
-# Multiplication and division first
-m_d_exists = true
-
-# Assume there are multiplication/division to be carried out
-while m_d_exists
-  be_verbose("Running recursive search for multiplication and division, left to right")
-  m_d_exists = false
-  $first_n = "[NOT SET]"
-  $second_n = "[NOT SET]"
-
-  n_builder = ""
-  s.each_char { |c|
-    sleep(0.75)
-    be_verbose("Iterating string, current character - '#{c}'")
-    $block_n += c
-    if !(is_first_n_set) and c == "*" or c == "/"
-      be_verbose("Found operator '#{c}'")
-      m_d_exists = true
-      $op = c
-      be_verbose("Operator set to '#{$op}'")
-      $first_n = n_builder.tr($op, "")
-      be_verbose("First number set to '#{$first_n}'")
-      be_verbose("New block number is '#{$block_n}'")
-      n_builder = ""
-    else
-    # Add character to number
-      n_builder += c
+# Calculates all the multiplication and divisions first
+def calculate_mul_div_blocks(s)
+  first_n = ""
+  second_n = ""
+  op_index = ""
+  log_verbose("Calculating formula blocks, the data is #{s}")
+  s.each_with_index { |v, i|
+    log_verbose("Checking index #{i} in array, value present #{v}")
+    if v == "*"
+      log_verbose("Found operator '#{v}'")
+      op_index = i
+      # Find number left of operand
+      range = i-1..0
+      (range.first).downto(range.last).each { |ln|
+        log_verbose("Scanning left from index #{ln}, current character #{s[ln]}")
+        if validate_number(s[ln])
+          first_n += s[ln]
+          s[ln] = "REMOVE"
+        else
+          log_verbose("Left operand: #{first_n}")
+          break
+        end
+      }
+      # First right operand
+      (i + 1..s.length - 1).each do |rn|
+        log_verbose("Scanning right from index #{rn}, current character #{s[rn]}")
+        if validate_number(s[rn])
+          second_n += s[rn]
+          s[rn] = "REMOVE"
+        else
+          log_verbose("Right operand: #{second_n}")
+          # Calculate using the left and right operand with the found operator and replace it in the array
+          op = s[op_index]
+          result = $operations[op].call(first_n.to_f, second_n.to_f).to_s
+          s[op_index] = result
+          log_verbose("Removing empty elements")
+          s.delete("REMOVE")
+          break
+        end
+      end
     end
   }
-  be_verbose("Reached end of string")
-  if is_op_set and is_first_n_set
-    be_verbose("Setting second number to '#{n_builder}'")
-    $second_n = n_builder.tr($op, "")
-    be_verbose("New block number is '#{$block_n}'")
-    to_be_subbed = operations[$op].call($first_n.to_f, $second_n.to_f).to_s
-    be_verbose("After using the '#{$op}' the block is now '#{to_be_subbed}' and will now replace the existing block '#{$block_n}'")
-    s = s.sub($block_n, to_be_subbed)
-    be_verbose("The block has now merged with the main operation, it is now '#{s}'")
-  end
 end
 
-puts "The calculation is now complete, the result was \n '#{s}'"
+# Important, everything needs to be floats
+s = convert_ints_to_floats(s)
+
+while s.include?("*") or s.include?("/") do
+  calculate_mul_div_blocks(s)
+end
+
+puts "The calculation is now complete, the result was\n'#{s}'"
 
 # if first_n != "[NOT SET]"
 #   be_verbose(options, "Found end of second number")
