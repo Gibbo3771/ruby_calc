@@ -45,10 +45,11 @@ div = -> (n1, n2) { $logger.debug("Dividing #{n1} and #{n2}"); return n1 / n2}
 # Lookup table
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div}
 $logger.debug("Lookup tables populated")
-# Need to remember these for string scanning
-#$first_n = "[NOT SET]", $second_n = "[NOT SET]", $block_n = "", $op = "[NOT SET]"
 # Assign to shorthand
-s = $options[:operation].split(" ")
+s = $options[:operation].tr(" ", "")
+s = s.split(/(\d+)/)
+puts "#{s}"
+exit
 
 # Checks if a given string contains a valid number. Only floats are valid
 def validate_number(string)
@@ -154,8 +155,31 @@ def find_brackets(s, i)
 end
 
 
+# Remove all whitespace and split every single thing up
+puts "#{s}"
+joined = ""
+(0..s.length - 1).each do |i|
+    joined += s[i]
+end
+
+new_s = ""
+(0..joined.length - 1).each do |i|
+  v = joined[i]
+  if validate_number(v)
+    puts v
+    new_s += v
+  else
+      new_s += "#{v} "
+  end
+end
+
+puts "#{joined}"
+puts "#{new_s}"
+
 # Important, everything needs to be floats
 s = convert_ints_to_floats(s)
+
+exit
 
 # Do all brackets first
 find_brackets(s, 0)
@@ -165,7 +189,6 @@ calculate_blocks(s, "*", "/")
 
 # do all add/sub
 calculate_blocks(s, "+", "-")
-
 
 # Output result
 puts "Result: #{s[0]}"
