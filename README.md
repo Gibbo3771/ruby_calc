@@ -3,7 +3,7 @@
 
 This is a simple string parser calculator that runs in the command line.
 
-You can run it by calling `ruby calc.rb -o "Your operation here`. 
+You can run it by calling `ruby calc.rb -o "Your operation here`". 
 You can also use the `-h` switch to print some help, but this needs fleshed out
 
 ## Formatting
