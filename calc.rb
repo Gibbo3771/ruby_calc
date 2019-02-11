@@ -112,16 +112,5 @@ while s.include?("+") or s.include?("-") do
   calculate_blocks(s, "+", "-")
 end
 
- puts "Result: #{s[0]}"
-
-# if first_n != "[NOT SET]"
-#   be_verbose(options, "Found end of second number")
-#   second_n = n_builder.tr(op, "")
-#   be_verbose(options, "Second number set to '#{second_n}'")
-#   s.sub(block_n, operations[op].call(first_n.to_d, second_n.to_d))
-#   be_verbose(options, "New block number is '#{block_n}' and is complete, it will now be subbed into the main operation")
-#   block_n = ""
-#   first_n = "[NOT SET]"
-#   second_n = "[NOT SET]"
-#   break
-# end
+# Output result
+puts "Result: #{s[0]}"
