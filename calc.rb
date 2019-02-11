@@ -35,18 +35,34 @@ end
 $logger.debug("Starting in verbose mode")
 
 $logger.debug("Starting calculation")
-$logger.debug("Found formula '#{$options[:operation]}', carrying out calculation")
+$logger.debug("Found formula '#{$options[:operation]}'")
 
 $logger.debug("Populating lookup tables")
+
+# Valid exponents
+$exponents = ["^"]
+# This is a list of all valid characters, we do this so we can error check there
+# users format
+$valid_characters = ["(", ")", "+", "-", "*", "/", "^"]
+
 add = -> (n1, n2) { $logger.debug("Adding #{n1} and #{n2}"); return n1 + n2}
 sub = -> (n1, n2) { $logger.debug("Subtracing #{n1} and #{n2}"); return n1 - n2}
 mul = -> (n1, n2) { $logger.debug("Multiplying #{n1} and #{n2}"); return n1 * n2}
 div = -> (n1, n2) { $logger.debug("Dividing #{n1} and #{n2}"); return n1 / n2}
+mod = -> (n1, n2) { $logger.debug("Mod of #{n1} and #{n2}"); return n1 % n2}
+square = -> (n1, n2=nil) { $logger.debug("Squaring #{n1}"); return n1 * n1}
+
 # Lookup table
-$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div}
-$logger.debug("Lookup tables populated")
+$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod}
 # Assign to shorthand
 s = $options[:operation].split(" ")
+
+$logger.debug("Lookup tables populated")
+
+# Checks if an exponent is valid and support by the calculator
+def is_exponent(string)
+  return $exponents.include?(string) ? true : false
+end
 
 # Checks if a given string contains a valid number. Only floats are valid
 def validate_number(string)
@@ -77,15 +93,22 @@ def convert_ints_to_floats(s)
   return s
 end
 
-def assign_operands(arr, i)
-  left = validate_number(arr[i - 1]) ? arr[i - 1] : false
-  right = validate_number(arr[i + 1]) ? arr[i + 1] : false
-  if !left or !right
-    $logger.info("Attempt to assign #{left ? "left" : "right"} operand failed, '#{!left ? arr[i - 1] : arr[i + 1]}' is not a number. Check your spacing")
-    exit
+# Coverts short hands to numbers
+def covert_string_shorthands_to_numbers(operand)
+  case operand
+  when "pi"
+    return Math::PI
+  else
+    $logger.info("#{operand} is not a know string shorthand")
   end
-  $logger.debug("Assigning #{arr[i - 1]} to left operand and #{arr[ i + 1]} to right operand")
-  return arr[i - 1], arr[i + 1]
+  return operand
+end
+
+def assign_operands(arr, i)
+  left = covert_string_shorthands_to_numbers(arr[i - 1])
+  right = covert_string_shorthands_to_numbers(arr[i + 1])
+  $logger.debug("Assigning #{left} to left operand and #{right} to right operand")
+  return left, right
 end
 
 # Calculates invidual blocks of operator, such as 5 * 3 or 5 + 5
@@ -99,16 +122,19 @@ def calculate_blocks(s, *operators)
     if operators.include?(v)
       $logger.debug("Found operator '#{v}'")
       op_index = i
-      # Important check, makes sure that there are no double operators or missing numbers
-      if i == 0 or (i + 1) > (s.length - 1)
-        $logger.info("No #{i == 0 ? "left" : "right"} operand for operator '#{v}', found at index '#{i}'")
-        exit
+      # Since exponents tend to not have an operand on both sides (squared, cubed, power, root etc), we don't want to throw an error
+      if (!is_exponent(v))
+        # Important check, makes sure that there are no double operators or missing numbers
+        if i == 0 or (i + 1) > (s.length - 1)
+          $logger.info("No #{i == 0 ? "left" : "right"} operand for operator '#{v}', found at index '#{i}'")
+          exit
+        end
       end
       left_operand, right_operand = assign_operands(s, i)
       # Replaces the operator found with the answer found using the left and right operator
       s[op_index] = $operations[s[op_index]].call(left_operand.to_f, right_operand.to_f).to_s
       s[i - 1] = "R"
-      s[i + 1] = "R"
+      s[i + 1] = "R" if !(is_exponent(v))
       s.delete("R")
       $logger.debug("Removing elements at index #{i - 1} and #{i + 1}")
       break
@@ -143,9 +169,10 @@ def find_brackets(s, i)
     end
     nested_s.push("#{s[y]}")
   }
-  #find_brackets(nested_s, left_bracket_i + 1)
   $logger.debug("Found this formula nested in brackets #{nested_s}")
-  # do all div/mul
+  # do exponents
+  calculate_blocks(nested_s, "^", "%")
+    # do all div/mul
   calculate_blocks(nested_s, "*", "/")
   # do all add/sub
   calculate_blocks(nested_s, "+", "-")
@@ -153,13 +180,12 @@ end
 
 # Important, everything needs to be floats
 s = convert_ints_to_floats(s)
-
 # Do all brackets first
 find_brackets(s, 0)
-
+#do exponents
+calculate_blocks(s, "^", "%")
 # do all div/mul
 calculate_blocks(s, "*", "/")
-
 # do all add/sub
 calculate_blocks(s, "+", "-")
 
