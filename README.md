@@ -1,5 +1,5 @@
 # ruby_calc
-# Simple ruby CLI calculator
+# A simple ruby CLI calculator
 
 This is a simple string parser calculator that runs in the command line.
 
