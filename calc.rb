@@ -11,19 +11,16 @@ operation = nil
 $options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: calc.rb [options]"
-
   $options[:operation] = "No formula specified"
   opts.on("-o", "--operation=o", "Takes a mathematical formula and returns an answer, it can add, subtract, divide and multiply.") do |o|
     $options[:operation] = o
   end
-
   $options[:verbose] = false
   opts.on("-v", "--verbose", "Output full log info") do
     $options[:verbose] = true
     # Set log level to debug for verbose
     $logger.level = Logger::DEBUG
   end
-
   opts.on("-h", "--help", "Display this screen") do
     puts opts
   end
