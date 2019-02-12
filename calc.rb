@@ -51,7 +51,7 @@ get_logger.debug("Found formula '#{$options[:operation]}'")
 get_logger.debug("Populating lookup tables")
 
 # Valid exponents
-$exponents = ["^"]
+$exponents = ["^", "sqrt"]
 # This is a list of all valid characters, we do this so we can error check there
 # users format
 $valid_characters = ["(", ")", "+", "-", "*", "/", "^"]
@@ -62,9 +62,10 @@ mul = -> (n1, n2) { get_logger.debug("Multiplying #{n1} and #{n2}"); return n1 *
 div = -> (n1, n2) { get_logger.debug("Dividing #{n1} and #{n2}"); return n1 / n2}
 mod = -> (n1, n2) { get_logger.debug("Mod of #{n1} and #{n2}"); return n1 % n2}
 square = -> (n1, n2=nil) { get_logger.debug("Squaring #{n1}"); return n1 * n1}
+sqrt = -> (n1, n2=nil) { get_logger.debug("Square root of #{n1}"); return Math.sqrt(n1)}
 
 # Lookup table
-$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod}
+$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt}
 
 get_logger.debug("Lookup tables populated")
 
@@ -145,7 +146,7 @@ def calculate_blocks(s, start_i, end_i, *operators)
       left_operand, right_operand = assign_operands(s, i)
       # Replaces the operator found with the answer found using the left and right operator
       s[i - 1] = "R"
-      s[i + 1] = "R" if !(is_exponent(v))
+      s[i + 1] = "R"
       r = $operations[s[op_index]].call(left_operand.to_f, right_operand.to_f).to_s
       get_logger.debug("Replace operator '#{s[op_index]}' at index '#{op_index}' with result '#{r}'")
       s[op_index] = r
@@ -157,7 +158,7 @@ end
 def perform_pedmas(s, start_i, end_i)
   get_logger.debug("Now performing PEDMAS in range #{start_i}..#{end_i} of #{s}")
   #do exponents
-  calculate_blocks(s, start_i, end_i, "^", "%")
+  calculate_blocks(s, start_i, end_i, "sqrt", "^", "%")
   # do all div/mul
   calculate_blocks(s, start_i, end_i, "*", "/")
   # do all add/sub
@@ -200,8 +201,10 @@ def find_brackets(s, i)
 end
 
 # better formatting
-s = $options[:operation].scan(/\d*\.?\d+|[-+\/*%()\^]/)
+s = $options[:operation].scan(/\d*\.?\d+\^?|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
 s = convert_ints_to_floats(s)
+
+exit
 
 # Do all brackets first
 find_brackets(s, 0)
@@ -210,7 +213,7 @@ find_brackets(s, 0)
 get_logger().debug("Final pass starting...")
 # Do final passes, we do this until we end up with one result
 while s.length > 1 do
-  perform_pedmas(s, 0, s.length)
+  perform_pedmas(s, 0, s.length - 1)
 end
 
 
