@@ -65,8 +65,6 @@ square = -> (n1, n2=nil) { get_logger.debug("Squaring #{n1}"); return n1 * n1}
 
 # Lookup table
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod}
-# Assign to shorthand
-s = $options[:operation].split(" ")
 
 get_logger.debug("Lookup tables populated")
 
@@ -201,8 +199,10 @@ def find_brackets(s, i)
   }
 end
 
-# Important, everything needs to be floats
+# better formatting
+s = $options[:operation].scan(/\d*\.?\d+|[-+\/*%()]/)
 s = convert_ints_to_floats(s)
+
 # Do all brackets first
 find_brackets(s, 0)
 # do everything now outside brackets
