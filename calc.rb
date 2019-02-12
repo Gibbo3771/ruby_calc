@@ -67,6 +67,8 @@ square = -> (n1, n2=nil) { get_logger.debug("Squaring #{n1}"); return n1 * n1}
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod}
 # Assign to shorthand
 s = $options[:operation].split(" ")
+$iterations = 0
+$final_pass = false
 
 get_logger.debug("Lookup tables populated")
 
@@ -122,8 +124,14 @@ end
 
 # Calculates invidual blocks of operator, such as 5 * 3 or 5 + 5
 def calculate_blocks(s, start_i, end_i, *operators)
+  # The reason you do this is because on the final pass, Rs won't me removed
+  # before it does one last run, often Rs replace brackets and any number
+  # multiplied by R is 0
+  # If you don't remove the useless elements it all fucks up
+  s.delete("R")
+  get_logger.debug("Data is now #{s}")
   op_index = ""
-  get_logger.debug("Calculating formula blocks with operators #{operators}, the data is #{s} and it is working with range #{start_i}..#{end_i}, this is recursive so don't panic if it calls multiple times")
+  get_logger.debug("Calculating formula blocks with operators #{operators} in range #{start_i}..#{end_i} of #{s}")
   (start_i..end_i).each.with_index(start_i) { |i|
     v = s[i]
     get_logger.debug("Checking index #{i} in array, value present #{v}")
@@ -145,18 +153,9 @@ def calculate_blocks(s, start_i, end_i, *operators)
       r = $operations[s[op_index]].call(left_operand.to_f, right_operand.to_f).to_s
       get_logger.debug("Replace operator '#{s[op_index]}' at index '#{op_index}' with result '#{r}'")
       s[op_index] = r
-      get_logger.debug("Removing elements at index #{i - 1} and #{i + 1}")
-      # If you don't remove the useless elements it all fucks up
-      s.delete("R")
-      get_logger.debug("Data is now #{s}")
       break
     end
   }
-  # Recursion baby. Continue to run this until all valid operators have been
-  # performed on
-  if(contains_operator(s, start_i, end_i, *operators))
-    calculate_blocks(s, start_i, end_i, *operators)
-  end
 end
 
 def perform_pedmas(s, start_i, end_i)
@@ -167,46 +166,59 @@ def perform_pedmas(s, start_i, end_i)
   calculate_blocks(s, start_i, end_i, "*", "/")
   # do all add/sub
   calculate_blocks(s, start_i, end_i, "+", "-")
+  get_logger.debug("Removing elements tagged as 'R' #{s}")
+  # Clean up
+  s.delete("R")
+  s.delete("B")
 end
 
 # Find all the brackets (open and closed) to conform to PEDMAS
-$iterations = 0
+$nested = false
 def find_brackets(s, i)
+  get_logger.debug("Removing elements tagged as 'B' #{s}")
+  # If you don't remove the useless elements it all fucks up
+  s.delete("B")
+  get_logger.debug("Data is now #{s}")
   $iterations += 1
   local_interation = $iterations.dup
   start_i = 0
   end_i = 0
-  nested = false
   get_logger.debug("Finding brackets in formula '#{s}'' starting at index '#{i}', this is recursive so don't panic if it calls multiple times")
   # Find brackets in s
   (i..s.length - 1).each.with_index(i) { |y|
+    break if y > s.length - 1
     if s[y] == "("
-      get_logger.debug("Found open bracket at index '#{y}', flagging it for removal")
-      s[y] = "R"
-      start_i = y + 1
-      nested = true
+      get_logger.debug("Found open bracket at index '#{y}', tagging it as B")
+      s[y] = "B"
+      start_i = y
       # We call this recursively to get into the deepest nest of brackets
       get_logger.debug("Checking for nested brackets")
-      get_logger.debug("We are currently in nest #{local_interation} out of a total of #{$iterations}")
+      #get_logger.debug("We are currently in nest #{local_interation} out of a total of #{$iterations}")
       find_brackets(s, start_i)
     end
-    if s[y] == ")" and nested
-      s[y] = "R"
-      get_logger.debug("Found close bracket at index '#{y}', flagging it for removal")
-      end_i = y - 1
-      perform_pedmas(s, start_i, end_i)
+    if s[y] == ")"
+      get_logger.debug("Found close bracket at index '#{y}', tagging it as B")
+      s[y] = "B"
+      end_i = y
+      #get_logger.debug("We are currently in nest #{local_interation} out of a total of #{$iterations}")
+      perform_pedmas(s, i, end_i)
       break
     end
     get_logger.debug("Found value '#{s[y]}' at index '#{y}'")
   }
-  get_logger.debug("We are currently in nest #{local_interation} out of a total of #{$iterations}")
 end
 
 # Important, everything needs to be floats
 s = convert_ints_to_floats(s)
 # Do all brackets first
 find_brackets(s, 0)
-perform_pedmas(s, 0, s.length - 1)
+# do everything now outside brackets
+# while contains_operator(s, 0, s.length, *$operators) do
+get_logger().debug("Final pass starting...")
+$final_pass = true
+perform_pedmas(s, 0, s.length)
+# end
+
 
 # Output result
 puts "Result: #{s[0]}"
