@@ -7,6 +7,7 @@ require 'logger'
 $logger = Logger.new(STDOUT, datetime_format: '%H:%M:%S:%L')
 $logger.level = Logger::INFO
 
+
 operation = nil
 $options = {}
 OptionParser.new do |opts|
@@ -14,6 +15,11 @@ OptionParser.new do |opts|
   $options[:operation] = "No formula specified"
   opts.on("-o", "--operation=o", "Takes a mathematical formula and returns an answer, it can add, subtract, divide and multiply and conforms to PEDMA. Every non number character must be separated by a space") do |o|
     $options[:operation] = o
+  end
+  $options[:log_delay] = 0
+  opts.on("-l", "--log-delay=l", "Any number value, this controls the flow output when verbose mode is activated") do |l|
+    $options[:log_delay] = l.to_f
+    puts l
   end
   $options[:verbose] = false
   opts.on("-v", "--verbose", "Output full log info") do
@@ -32,12 +38,17 @@ if $options[:operation] == "No formula specified"
   exit
 end
 
-$logger.debug("Starting in verbose mode")
+# Used to apply a debug delay to the logger
+def get_logger()
+  sleep $options[:log_delay]
+  return $logger
+end
+get_logger.debug("Starting in verbose mode")
 
-$logger.debug("Starting calculation")
-$logger.debug("Found formula '#{$options[:operation]}'")
+get_logger.debug("Starting calculation")
+get_logger.debug("Found formula '#{$options[:operation]}'")
 
-$logger.debug("Populating lookup tables")
+get_logger.debug("Populating lookup tables")
 
 # Valid exponents
 $exponents = ["^"]
@@ -45,19 +56,19 @@ $exponents = ["^"]
 # users format
 $valid_characters = ["(", ")", "+", "-", "*", "/", "^"]
 
-add = -> (n1, n2) { $logger.debug("Adding #{n1} and #{n2}"); return n1 + n2}
-sub = -> (n1, n2) { $logger.debug("Subtracing #{n1} and #{n2}"); return n1 - n2}
-mul = -> (n1, n2) { $logger.debug("Multiplying #{n1} and #{n2}"); return n1 * n2}
-div = -> (n1, n2) { $logger.debug("Dividing #{n1} and #{n2}"); return n1 / n2}
-mod = -> (n1, n2) { $logger.debug("Mod of #{n1} and #{n2}"); return n1 % n2}
-square = -> (n1, n2=nil) { $logger.debug("Squaring #{n1}"); return n1 * n1}
+add = -> (n1, n2) { get_logger.debug("Adding #{n1} and #{n2}"); return n1 + n2}
+sub = -> (n1, n2) { get_logger.debug("Subtracing #{n1} and #{n2}"); return n1 - n2}
+mul = -> (n1, n2) { get_logger.debug("Multiplying #{n1} and #{n2}"); return n1 * n2}
+div = -> (n1, n2) { get_logger.debug("Dividing #{n1} and #{n2}"); return n1 / n2}
+mod = -> (n1, n2) { get_logger.debug("Mod of #{n1} and #{n2}"); return n1 % n2}
+square = -> (n1, n2=nil) { get_logger.debug("Squaring #{n1}"); return n1 * n1}
 
 # Lookup table
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod}
 # Assign to shorthand
 s = $options[:operation].split(" ")
 
-$logger.debug("Lookup tables populated")
+get_logger.debug("Lookup tables populated")
 
 # Checks if an exponent is valid and support by the calculator
 def is_exponent(string)
@@ -66,30 +77,30 @@ end
 
 # Checks if a given string contains a valid number. Only floats are valid
 def validate_number(string)
-  $logger.debug("Checking if string '#{string}' is a valid number: #{string.to_f.to_s == string}")
+  get_logger.debug("Checking if string '#{string}' is a valid number: #{string.to_f.to_s == string}")
   return string.to_f.to_s == string
 end
 
-def contains_operator(s, *operators)
-  (0..s.length - 1).each do |i|
+def contains_operator(s, start_i, end_i, *operators)
+  (start_i..end_i).each.with_index(start_i) { |i|
     if operators.include?(s[i])
-      $logger.debug("Operator #{s[i]} is in the valid list if operators (#{operators})")
+      get_logger.debug("Operator #{s[i]} is in the valid list if operators (#{operators})")
       return true
     end
-  end
+  }
   return false
 end
 
 # Converts all the integers in the array to floats, this makes it easier to code, not really for anything else
 def convert_ints_to_floats(s)
-  $logger.debug("Converting all integers in #{s} to floats")
+  get_logger.debug("Converting all integers in #{s} to floats")
   (0..s.length - 1).each do |i|
     c = s[i]
       if c.to_i.to_s == c
         s[i] = c.to_f.to_s
       end
   end
-  $logger.debug("Every integer in #{s} is now a float")
+  get_logger.debug("Every integer in #{s} is now a float")
   return s
 end
 
@@ -98,96 +109,104 @@ def covert_string_shorthands_to_numbers(operand)
   case operand
   when "pi"
     return Math::PI
-  else
-    $logger.info("#{operand} is not a know string shorthand")
   end
   return operand
 end
 
 def assign_operands(arr, i)
-  left = covert_string_shorthands_to_numbers(arr[i - 1])
-  right = covert_string_shorthands_to_numbers(arr[i + 1])
-  $logger.debug("Assigning #{left} to left operand and #{right} to right operand")
+  left = (arr[i - 1])
+  right = (arr[i + 1])
+  get_logger.debug("Assigning #{left} to left operand and #{right} to right operand")
   return left, right
 end
 
 # Calculates invidual blocks of operator, such as 5 * 3 or 5 + 5
-def calculate_blocks(s, *operators)
-  # Always delete all removable elements before attempting to carry out calculations
-  s.delete("R")
+def calculate_blocks(s, start_i, end_i, *operators)
   op_index = ""
-  $logger.debug("Calculating formula blocks, the data is #{s}")
-  s.each_with_index { |v, i|
-    $logger.debug("Checking index #{i} in array, value present #{v}")
+  get_logger.debug("Calculating formula blocks with operators #{operators}, the data is #{s} and it is working with range #{start_i}..#{end_i}, this is recursive so don't panic if it calls multiple times")
+  (start_i..end_i).each.with_index(start_i) { |i|
+    v = s[i]
+    get_logger.debug("Checking index #{i} in array, value present #{v}")
     if operators.include?(v)
-      $logger.debug("Found operator '#{v}'")
+      get_logger.debug("Found operator '#{v}'")
       op_index = i
       # Since exponents tend to not have an operand on both sides (squared, cubed, power, root etc), we don't want to throw an error
       if (!is_exponent(v))
         # Important check, makes sure that there are no double operators or missing numbers
         if i == 0 or (i + 1) > (s.length - 1)
-          $logger.info("No #{i == 0 ? "left" : "right"} operand for operator '#{v}', found at index '#{i}'")
+          get_logger.info("No #{i == 0 ? "left" : "right"} operand for operator '#{v}', found at index '#{i}'")
           exit
         end
       end
       left_operand, right_operand = assign_operands(s, i)
       # Replaces the operator found with the answer found using the left and right operator
-      s[op_index] = $operations[s[op_index]].call(left_operand.to_f, right_operand.to_f).to_s
       s[i - 1] = "R"
       s[i + 1] = "R" if !(is_exponent(v))
+      r = $operations[s[op_index]].call(left_operand.to_f, right_operand.to_f).to_s
+      get_logger.debug("Replace operator '#{s[op_index]}' at index '#{op_index}' with result '#{r}'")
+      s[op_index] = r
+      get_logger.debug("Removing elements at index #{i - 1} and #{i + 1}")
+      # If you don't remove the useless elements it all fucks up
       s.delete("R")
-      $logger.debug("Removing elements at index #{i - 1} and #{i + 1}")
+      get_logger.debug("Data is now #{s}")
       break
     end
   }
   # Recursion baby. Continue to run this until all valid operators have been
   # performed on
-  if(contains_operator(s, *operators))
-    calculate_blocks(s, *operators)
+  if(contains_operator(s, start_i, end_i, *operators))
+    calculate_blocks(s, start_i, end_i, *operators)
   end
 end
 
+def perform_pedmas(s, start_i, end_i)
+  get_logger.debug("Now performing PEDMAS in range #{start_i}..#{end_i} of #{s}")
+  #do exponents
+  calculate_blocks(s, start_i, end_i, "^", "%")
+  # do all div/mul
+  calculate_blocks(s, start_i, end_i, "*", "/")
+  # do all add/sub
+  calculate_blocks(s, start_i, end_i, "+", "-")
+end
+
 # Find all the brackets (open and closed) to conform to PEDMAS
+$iterations = 0
 def find_brackets(s, i)
-  nested_s = []
-  n_nests = 0
-  left_bracket_i = 0
-  right_bracket_i = 0
-  $logger.debug("Finding brackets in formula '#{s}'' starting at index '#{i}', this is recursive so don't panic if it calls multiple times")
+  $iterations += 1
+  local_interation = $iterations.dup
+  start_i = 0
+  end_i = 0
+  nested = false
+  get_logger.debug("Finding brackets in formula '#{s}'' starting at index '#{i}', this is recursive so don't panic if it calls multiple times")
   # Find brackets in s
   (i..s.length - 1).each.with_index(i) { |y|
     if s[y] == "("
-      $logger.debug("Found open bracket at index '#{y}', flagging it for removal")
+      get_logger.debug("Found open bracket at index '#{y}', flagging it for removal")
       s[y] = "R"
+      start_i = y + 1
+      nested = true
       # We call this recursively to get into the deepest nest of brackets
-      find_brackets(s, y + 1)
+      get_logger.debug("Checking for nested brackets")
+      get_logger.debug("We are currently in nest #{local_interation} out of a total of #{$iterations}")
+      find_brackets(s, start_i)
     end
-    if s[y] == ")"
-      $logger.debug("Found close bracket at index '#{y}', flagging it for removal")
+    if s[y] == ")" and nested
       s[y] = "R"
+      get_logger.debug("Found close bracket at index '#{y}', flagging it for removal")
+      end_i = y - 1
+      perform_pedmas(s, start_i, end_i)
       break
     end
-    nested_s.push("#{s[y]}")
+    get_logger.debug("Found value '#{s[y]}' at index '#{y}'")
   }
-  $logger.debug("Found this formula nested in brackets #{nested_s}")
-  # do exponents
-  calculate_blocks(nested_s, "^", "%")
-    # do all div/mul
-  calculate_blocks(nested_s, "*", "/")
-  # do all add/sub
-  calculate_blocks(nested_s, "+", "-")
+  get_logger.debug("We are currently in nest #{local_interation} out of a total of #{$iterations}")
 end
 
 # Important, everything needs to be floats
 s = convert_ints_to_floats(s)
 # Do all brackets first
 find_brackets(s, 0)
-#do exponents
-calculate_blocks(s, "^", "%")
-# do all div/mul
-calculate_blocks(s, "*", "/")
-# do all add/sub
-calculate_blocks(s, "+", "-")
+perform_pedmas(s, 0, s.length - 1)
 
 # Output result
 puts "Result: #{s[0]}"
