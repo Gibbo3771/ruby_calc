@@ -208,26 +208,9 @@ def find_brackets(s, i)
   }
 end
 
-# better formatting, this needs tidied quite a bit
-s = $options[:operation].split(" ")
-# Important, everything needs to be floats
+# better formatting
+s = $options[:operation].scan(/\d*\.?\d+|[-+\/*%()]/)
 s = convert_ints_to_floats(s)
-ss = ""
-(0..s.length - 1).each.with_index { |y|
-  ss += s[y]
-}
-better_format = []
-better_format[0] = ss[0]
-better_format_index = -1
-(0..ss.length - 1).each.with_index { |y|
-  v = ss[y]
-  # Check if number
-  if !(v.to_f.to_s == v) or !(v == ".")
-    better_format_index += 1
-  end
-  better_format[better_format_index] = v
-}
-s = better_format
 
 # Do all brackets first
 find_brackets(s, 0)
