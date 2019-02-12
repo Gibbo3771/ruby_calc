@@ -67,8 +67,6 @@ square = -> (n1, n2=nil) { get_logger.debug("Squaring #{n1}"); return n1 * n1}
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod}
 # Assign to shorthand
 s = $options[:operation].split(" ")
-$iterations = 0
-$final_pass = false
 
 get_logger.debug("Lookup tables populated")
 
@@ -173,14 +171,11 @@ def perform_pedmas(s, start_i, end_i)
 end
 
 # Find all the brackets (open and closed) to conform to PEDMAS
-$nested = false
 def find_brackets(s, i)
   get_logger.debug("Removing elements tagged as 'B' #{s}")
   # If you don't remove the useless elements it all fucks up
   s.delete("B")
   get_logger.debug("Data is now #{s}")
-  $iterations += 1
-  local_interation = $iterations.dup
   start_i = 0
   end_i = 0
   get_logger.debug("Finding brackets in formula '#{s}'' starting at index '#{i}', this is recursive so don't panic if it calls multiple times")
@@ -193,14 +188,12 @@ def find_brackets(s, i)
       start_i = y
       # We call this recursively to get into the deepest nest of brackets
       get_logger.debug("Checking for nested brackets")
-      #get_logger.debug("We are currently in nest #{local_interation} out of a total of #{$iterations}")
       find_brackets(s, start_i)
     end
     if s[y] == ")"
       get_logger.debug("Found close bracket at index '#{y}', tagging it as B")
       s[y] = "B"
       end_i = y
-      #get_logger.debug("We are currently in nest #{local_interation} out of a total of #{$iterations}")
       perform_pedmas(s, i, end_i)
       break
     end
@@ -215,7 +208,6 @@ find_brackets(s, 0)
 # do everything now outside brackets
 # while contains_operator(s, 0, s.length, *$operators) do
 get_logger().debug("Final pass starting...")
-$final_pass = true
 perform_pedmas(s, 0, s.length)
 # end
 
