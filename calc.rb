@@ -200,7 +200,7 @@ def find_brackets(s, i)
 end
 
 # better formatting
-s = $options[:operation].scan(/\d*\.?\d+|[-+\/*%()]/)
+s = $options[:operation].scan(/\d*\.?\d+|[-+\/*%()\^]/)
 s = convert_ints_to_floats(s)
 
 # Do all brackets first
@@ -208,8 +208,10 @@ find_brackets(s, 0)
 # do everything now outside brackets
 # while contains_operator(s, 0, s.length, *$operators) do
 get_logger().debug("Final pass starting...")
-perform_pedmas(s, 0, s.length)
-# end
+# Do final passes, we do this until we end up with one result
+while s.length > 1 do
+  perform_pedmas(s, 0, s.length)
+end
 
 
 # Output result
