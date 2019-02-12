@@ -8,7 +8,7 @@ You can also use the `-h` switch to print some help, but this needs fleshed out
 
 ## Formatting
 
-The calculator at the moment uses pretty strict formatting due to me shit with regex, the formatting rules are as follows:
+The calculator at the moment uses ~~pretty strict formatting due to me shit with regex~~ reasonably strict formatting, the formatting rules are as follows:
 
 * Your formula must be surrounded by double quotations
 
@@ -16,11 +16,13 @@ The calculator at the moment uses pretty strict formatting due to me shit with r
    
    Invalid `5 + 5`
   
-* Every number, brace and operator must be separated with white space
+* ~~Every number, brace and operator must be separated with white space~~
 
-   Valid `"5 + 5"
+   ~~Valid `"5 + 5"~~
    
-   Invalid `"5+5"`
+   ~~Invalid `"5+5"`~~
+   
+   Any whitespace format is now accepted!
    
 * All braces must be closed
 * If you do not put an operator, there is no assumption that you mean multiply!
@@ -51,3 +53,16 @@ At the moment the calculator supports very little shorthands, but you can pass i
 formula    
 
    Example is PI, `"5 * pi`"
+   
+## Options
+
+The calculator supports various options, you can type `calc.rb -h` for a list, or read on
+
+`-o` Takes a formula and calculates the result
+
+`-v` Prints an extensive log of the calculators step by step process
+
+`-l` Sets a delay for the verbose output, this allows you to slow down the program during debugging. Does not work if verbose is not enabled
+
+`-h` Displays a help screen listing all the options available
+
