@@ -34,6 +34,14 @@ module CalcParser
     return string.match?(/\(\)/)
   end
 
+  def CalcParser.is_shorthand(string)
+    return string.match?(/pi/)
+  end
+
+  def CalcParser.extract_shorthand(string)
+    return string.scan(/pi/)
+  end
+
   # Extracts a number from a formula
   def CalcParser.extract_number(string)
     return string.scan(/\d*\.?\d+/)
@@ -72,7 +80,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(\d*\.?\d+\)/)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(\d*\.?\d+\)|pi/)
   end
 
 end
@@ -123,12 +131,6 @@ get_logger.debug("Found formula '#{$options[:operation]}'")
 
 get_logger.debug("Populating lookup tables")
 
-# Valid exponents
-$exponents = ["^", "sqrt"]
-# This is a list of all valid characters, we do this so we can error check there
-# users format
-$valid_characters = ["(", ")", "+", "-", "*", "/", "^"]
-
 add = -> (*n) { get_logger.debug("Adding #{n[0]} and #{n[1]}"); return n[0] + n[1]}
 sub = -> (*n) { get_logger.debug("Subtracing #{n[0]} and #{n[1]}"); return n[0] - n[1]}
 mul = -> (*n) { get_logger.debug("Multiplying #{n[0]} and #{n[1]}"); return n[0] * n[1]}
@@ -137,8 +139,10 @@ mod = -> (*n) { get_logger.debug("Mod of #{n[0]} and #{n[1]}"); return n[0] % n[
 square = -> (*n) { get_logger.debug("Squaring #{n[0]}"); return n[0] * n[0]}
 sqrt = -> (*n) { get_logger.debug("Square root of #{n[0]}"); return Math.sqrt(n[0])}
 
-# Lookup table
+# Lookup table for operations
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt}
+# Lookup table for shorthands
+$shorthands = {"pi" => Math::PI}
 
 get_logger.debug("Lookup tables populated")
 
@@ -150,6 +154,9 @@ end
 def assign_operands(arr, i)
   left = (arr[i - 1])
   right = (arr[i + 1])
+  puts right
+  left = $shorthands[left].to_s if CalcParser.is_shorthand(left)
+  right = $shorthands[right].to_s if CalcParser.is_shorthand(right)
   get_logger.debug("Assigning #{left} to left operand and #{right} to right operand")
   return left, right
 end
@@ -258,7 +265,6 @@ end
 
 # better formatting
 s = CalcParser.parse($options[:operation])
-# s = convert_ints_to_floats(s)
 
 # Do all brackets first
 find_brackets(s, 0)
