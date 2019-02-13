@@ -100,7 +100,6 @@ OptionParser.new do |opts|
   $options[:log_delay] = 0
   opts.on("-l", "--log-delay=l", "Any number value, this controls the flow output when verbose mode is activated") do |l|
     $options[:log_delay] = l.to_f
-    puts l
   end
   $options[:verbose] = false
   opts.on("-v", "--verbose", "Output full log info") do
@@ -152,9 +151,9 @@ def get_result(operator, *n)
 end
 
 def assign_operands(arr, i)
+  # Could probably tenery this up but meh
   left = (arr[i - 1])
   right = (arr[i + 1])
-  puts right
   left = $shorthands[left].to_s if CalcParser.is_shorthand(left)
   right = $shorthands[right].to_s if CalcParser.is_shorthand(right)
   get_logger.debug("Assigning #{left} to left operand and #{right} to right operand")

@@ -39,3 +39,6 @@ echo "Testing PEDMAS (bracket), expected result = 20"
 echo $(ruby ./calc.rb -o "3*5+(2+3)")
 echo "Testing PEDMAS (bracket nested), expected result = 25"
 echo $(ruby ./calc.rb -o "3*5+(2*2+(3+3))")
+
+echo "Testing shorthands (PI), expected result = 6.283185307179586"
+echo $(ruby ./calc.rb -o "2 * pi")
