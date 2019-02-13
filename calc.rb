@@ -3,10 +3,60 @@
 require 'optparse'
 require 'logger'
 
+module CalcParser
+
+  def CalcParser.is_number(string)
+    return string.match?(/\d*\.?\d+/)
+  end
+
+  def CalcParser.is_operator(string)
+    return string.match?(/[\*\/\+\-\%]/)
+  end
+
+
+  def CalcParser.is_sqrt(string)
+    return string.match?(/sqrt\(\d*\.?\d+\)/)
+  end
+
+  def CalcParser.is_square(string)
+    return string.match?(/\d*\.?\d+\^/)
+  end
+
+  def CalcParser.is_bracket(string)
+    return string.match?(/\(\)/)
+  end
+
+  def CalcParser.extract_number(string)
+    return string.scan(/\d*\.?\d+/)
+  end
+
+  def CalcParser.is_any_in_array(arr)
+    for string in arr do
+      return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
+    end
+    return false
+  end
+
+  def CalcParser.is_any(string)
+    return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
+    return false
+  end
+
+  def CalcParser.includes_operator(*operators, v)
+    return true if operators.include?("sqrt") && is_sqrt(v)
+    return true if operators.include?("^") && is_square(v)
+    return true if operators.include?(v)
+    return false
+  end
+
+  def CalcParser.validate_input(arr)
+  end
+
+end
+
 # Default logger
 $logger = Logger.new(STDOUT, datetime_format: '%H:%M:%S:%L')
 $logger.level = Logger::INFO
-
 
 operation = nil
 $options = {}
@@ -132,16 +182,24 @@ def calculate_blocks(s, start_i, end_i, *operators)
   (start_i..end_i).each.with_index(start_i) { |i|
     v = s[i]
     get_logger.debug("Checking index #{i} in array, value present #{v}")
-    if operators.include?(v)
+    if CalcParser.includes_operator(*operators, v)
       get_logger.debug("Found operator '#{v}'")
+      # Need this for placing the result in the array
       op_index = i
-      # Since exponents tend to not have an operand on both sides (squared, cubed, power, root etc), we don't want to throw an error
-      if (!is_exponent(v))
-        # Important check, makes sure that there are no double operators or missing numbers
-        if i == 0 or (i + 1) > (s.length - 1)
-          get_logger.info("No #{i == 0 ? "left" : "right"} operand for operator '#{v}', found at index '#{i}'")
-          exit
-        end
+      left_operand = s[i - 1]
+      right_operand = s[i + 1]
+      # Important check, makes sure that there are no double or missing operators. Needs tidied and debug messages added
+      if CalcParser.is_operator(left_operand)
+        exit
+      elsif CalcParser.is_sqrt(left_operand)
+        exit
+      elsif CalcParser.is_bracket(left_operand)
+      end
+      if CalcParser.is_operator(right_operand)
+        exit
+      elsif CalcParser.is_sqrt(right_operand)
+        exit
+      elsif CalcParser.is_bracket(right_operand)
       end
       left_operand, right_operand = assign_operands(s, i)
       # Replaces the operator found with the answer found using the left and right operator
@@ -158,9 +216,9 @@ end
 def perform_pedmas(s, start_i, end_i)
   get_logger.debug("Now performing PEDMAS in range #{start_i}..#{end_i} of #{s}")
   #do exponents
-  calculate_blocks(s, start_i, end_i, "sqrt", "^", "%")
+  calculate_blocks(s, start_i, end_i, "^", "sqrt")
   # do all div/mul
-  calculate_blocks(s, start_i, end_i, "*", "/")
+  calculate_blocks(s, start_i, end_i, "*", "/", "%")
   # do all add/sub
   calculate_blocks(s, start_i, end_i, "+", "-")
   get_logger.debug("Removing elements tagged as 'R' #{s}")
@@ -204,18 +262,14 @@ end
 s = $options[:operation].scan(/\d*\.?\d+\^?|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
 s = convert_ints_to_floats(s)
 
-exit
-
 # Do all brackets first
 find_brackets(s, 0)
 # do everything now outside brackets
 # while contains_operator(s, 0, s.length, *$operators) do
 get_logger().debug("Final pass starting...")
 # Do final passes, we do this until we end up with one result
-while s.length > 1 do
+while CalcParser.is_any_in_array(s) do
   perform_pedmas(s, 0, s.length - 1)
 end
-
-
 # Output result
-puts "Result: #{s[0]}"
+puts s.length == 1 ? "Result: #{s[0]}" : "Could not calculate answer, this is usually due to incorrect formatting. Sorry it's cryptic, working on it :)"
