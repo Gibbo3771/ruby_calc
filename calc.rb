@@ -35,6 +35,10 @@ module CalcParser
     return string.scan(/\d*\.?\d+/)
   end
 
+  def CalcParser.extract_operator(string)
+    return string.scan(/[-+\/*%\^]|sqrt/)
+  end
+
   # Checks if any valid operator is in the given array
   # TODO this needs renamed,
   def CalcParser.is_any_in_array(arr)
@@ -116,60 +120,22 @@ $exponents = ["^", "sqrt"]
 # users format
 $valid_characters = ["(", ")", "+", "-", "*", "/", "^"]
 
-add = -> (n1, n2) { get_logger.debug("Adding #{n1} and #{n2}"); return n1 + n2}
-sub = -> (n1, n2) { get_logger.debug("Subtracing #{n1} and #{n2}"); return n1 - n2}
-mul = -> (n1, n2) { get_logger.debug("Multiplying #{n1} and #{n2}"); return n1 * n2}
-div = -> (n1, n2) { get_logger.debug("Dividing #{n1} and #{n2}"); return n1 / n2}
-mod = -> (n1, n2) { get_logger.debug("Mod of #{n1} and #{n2}"); return n1 % n2}
-square = -> (n1, n2=nil) { get_logger.debug("Squaring #{n1}"); return n1 * n1}
-sqrt = -> (n1, n2=nil) { get_logger.debug("Square root of #{n1}"); return Math.sqrt(n1)}
+add = -> (*n) { get_logger.debug("Adding #{n[0]} and #{n[1]}"); return n[0] + n[1]}
+sub = -> (*n) { get_logger.debug("Subtracing #{n[0]} and #{n[1]}"); return n[0] - n[1]}
+mul = -> (*n) { get_logger.debug("Multiplying #{n[0]} and #{n[1]}"); return n[0] * n[1]}
+div = -> (*n) { get_logger.debug("Dividing #{n[0]} and #{n[1]}"); return n[0] / n[1]}
+mod = -> (*n) { get_logger.debug("Mod of #{n[0]} and #{n[1]}"); return n[0] % n[1]}
+square = -> (*n) { get_logger.debug("Squaring #{n[0]}"); return n[0] * n[0]}
+sqrt = -> (*n) { get_logger.debug("Square root of #{n[0]}"); return Math.sqrt(n[0])}
 
 # Lookup table
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt}
 
 get_logger.debug("Lookup tables populated")
 
-# Checks if an exponent is valid and support by the calculator
-def is_exponent(string)
-  return $exponents.include?(string) ? true : false
-end
-
-# Checks if a given string contains a valid number. Only floats are valid
-def validate_number(string)
-  get_logger.debug("Checking if string '#{string}' is a valid number: #{string.to_f.to_s == string}")
-  return string.to_f.to_s == string
-end
-
-def contains_operator(s, start_i, end_i, *operators)
-  (start_i..end_i).each.with_index(start_i) { |i|
-    if operators.include?(s[i])
-      get_logger.debug("Operator #{s[i]} is in the valid list if operators (#{operators})")
-      return true
-    end
-  }
-  return false
-end
-
-# Converts all the integers in the array to floats, this makes it easier to code, not really for anything else
-def convert_ints_to_floats(s)
-  get_logger.debug("Converting all integers in #{s} to floats")
-  (0..s.length - 1).each do |i|
-    c = s[i]
-      if c.to_i.to_s == c
-        s[i] = c.to_f.to_s
-      end
-  end
-  get_logger.debug("Every integer in #{s} is now a float")
-  return s
-end
-
-# Coverts short hands to numbers
-def covert_string_shorthands_to_numbers(operand)
-  case operand
-  when "pi"
-    return Math::PI
-  end
-  return operand
+# Returns the result of the given operator and number
+def get_result(operator, *n)
+  return $operations[operator].call(*n).to_s
 end
 
 def assign_operands(arr, i)
@@ -192,10 +158,20 @@ def calculate_blocks(s, start_i, end_i, *operators)
   (start_i..end_i).each.with_index(start_i) { |i|
     v = s[i]
     get_logger.debug("Checking index #{i} in array, value present #{v}")
+    # First check if operator is valid, this is done to conform to PEDMAS
     if CalcParser.includes_operator(*operators, v)
-      get_logger.debug("Found operator '#{v}'")
-      # Need this for placing the result in the array
-      op_index = i
+      op = CalcParser.extract_operator(v)[0]
+      get_logger.debug("Found operator '#{op}'")
+      if CalcParser.is_sqrt(v)
+        number = CalcParser.extract_number(v)[0].to_f
+        s[i] = get_result(op, number)
+        break
+      end
+      if CalcParser.is_square(v)
+        number = CalcParser.extract_number(v)[0].to_f
+        s[i] = get_result(op, number)
+        break
+      end
       left_operand = s[i - 1]
       right_operand = s[i + 1]
       # Important check, makes sure that there are no double or missing operators. Needs tidied and debug messages added
@@ -215,9 +191,9 @@ def calculate_blocks(s, start_i, end_i, *operators)
       # Replaces the operator found with the answer found using the left and right operator
       s[i - 1] = "R"
       s[i + 1] = "R"
-      r = $operations[s[op_index]].call(left_operand.to_f, right_operand.to_f).to_s
-      get_logger.debug("Replace operator '#{s[op_index]}' at index '#{op_index}' with result '#{r}'")
-      s[op_index] = r
+      result = get_result(op, left_operand.to_f, right_operand.to_f)
+      get_logger.debug("Replace operator '#{v}' at index '#{op_index}' with result '#{result}'")
+      s[i] = result
       break
     end
   }
@@ -261,6 +237,7 @@ def find_brackets(s, i)
       get_logger.debug("Found close bracket at index '#{y}', tagging it as B")
       s[y] = "B"
       end_i = y
+      has_opening_bracket = false
       perform_pedmas(s, i, end_i)
       break
     end
@@ -270,7 +247,7 @@ end
 
 # better formatting
 s = $options[:operation].scan(/\d*\.?\d+\^?|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
-s = convert_ints_to_floats(s)
+# s = convert_ints_to_floats(s)
 
 # Do all brackets first
 find_brackets(s, 0)
@@ -281,5 +258,6 @@ get_logger().debug("Final pass starting...")
 while CalcParser.is_any_in_array(s) do
   perform_pedmas(s, 0, s.length - 1)
 end
+
 # Output result
-puts s.length == 1 ? "Result: #{s[0]}" : "Could not calculate answer, this is usually due to incorrect formatting. Sorry it's cryptic, working on it :)"
+puts s.length == 1 ? "Result: #{s[0].scan(/\d*\.?\d+0?/)[0]}" : "Could not calculate answer, this is usually due to incorrect formatting. Sorry it's cryptic, working on it :)"
