@@ -5,31 +5,38 @@ require 'logger'
 
 module CalcParser
 
+  # Checks if a given string is a number
   def CalcParser.is_number(string)
     return string.match?(/\d*\.?\d+/)
   end
 
+  # Checks if the string is a operator
   def CalcParser.is_operator(string)
     return string.match?(/[\*\/\+\-\%]/)
   end
 
-
+  # Check if the string is a square root formula
   def CalcParser.is_sqrt(string)
     return string.match?(/sqrt\(\d*\.?\d+\)/)
   end
 
+  # Check if the string is a number to be squared
   def CalcParser.is_square(string)
     return string.match?(/\d*\.?\d+\^/)
   end
 
+  # Check if the string is an open or close curly bracket
   def CalcParser.is_bracket(string)
     return string.match?(/\(\)/)
   end
 
+  # Extracts a number from a formula
   def CalcParser.extract_number(string)
     return string.scan(/\d*\.?\d+/)
   end
 
+  # Checks if any valid operator is in the given array
+  # TODO this needs renamed,
   def CalcParser.is_any_in_array(arr)
     for string in arr do
       return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
@@ -37,11 +44,13 @@ module CalcParser
     return false
   end
 
+  # Checks the string for any operator
   def CalcParser.is_any(string)
     return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
     return false
   end
 
+  # Checks if an operator is included in a list of given operators
   def CalcParser.includes_operator(*operators, v)
     return true if operators.include?("sqrt") && is_sqrt(v)
     return true if operators.include?("^") && is_square(v)
@@ -49,6 +58,7 @@ module CalcParser
     return false
   end
 
+  # TODO validate the users input
   def CalcParser.validate_input(arr)
   end
 
