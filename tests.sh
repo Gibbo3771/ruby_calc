@@ -18,9 +18,9 @@ echo $(ruby ./calc.rb -o "2^")
 echo "Testing square root, expected result = 3"
 echo $(ruby ./calc.rb -o "sqrt(9)")
 
-echo "Testing PEDMAS (* priority right to left), expected result = 21"
+echo "Testing PEDMAS (* priority right to left), expected result = 22"
 echo $(ruby ./calc.rb -o "2+5*4")
-echo "Testing PEDMAS (* priority left to right), expected result = 21"
+echo "Testing PEDMAS (* priority left to right), expected result = 22"
 echo $(ruby ./calc.rb -o "5*4+2")
 echo "Testing PEDMAS (/ priority right to left), expected result = 13"
 echo $(ruby ./calc.rb -o "10+6/2")

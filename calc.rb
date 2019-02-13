@@ -12,17 +12,21 @@ module CalcParser
 
   # Checks if the string is a operator
   def CalcParser.is_operator(string)
-    return string.match?(/[\*\/\+\-\%]/)
+    return string.match?(/\*\/\+\-\%\^/)
   end
 
   # Check if the string is a square root formula
   def CalcParser.is_sqrt(string)
-    return string.match?(/sqrt\(\d*\.?\d+\)/)
+    return string.match?(/sqrt\(.*\)/)
+  end
+
+  def CalcParser.parse_sqrt(string)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()]/)
   end
 
   # Check if the string is a number to be squared
   def CalcParser.is_square(string)
-    return string.match?(/\d*\.?\d+\^/)
+    return string.match?(/\d*\.?\d+\^|\^/)
   end
 
   # Check if the string is an open or close curly bracket
@@ -43,7 +47,7 @@ module CalcParser
   # TODO this needs renamed,
   def CalcParser.is_any_in_array(arr)
     for string in arr do
-      return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
+      return true if string.match?(/\d*\.?\d+\^|[-+\/*%()^]|sqrt\(\d*\.?\d+\)/)
     end
     return false
   end
@@ -64,6 +68,11 @@ module CalcParser
 
   # TODO validate the users input
   def CalcParser.validate_input(arr)
+  end
+
+  # Parses a string into an array of valid numbers and operators
+  def CalcParser.parse(string)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(\d*\.?\d+\)/)
   end
 
 end
@@ -163,31 +172,33 @@ def calculate_blocks(s, start_i, end_i, *operators)
       op = CalcParser.extract_operator(v)[0]
       get_logger.debug("Found operator '#{op}'")
       if CalcParser.is_sqrt(v)
+        # Since a sqrt calculation can have anything in the brackets, we need
+        # check inside for a formula
+        # s_internal = CalcParser.parse_sqrt(v)
+        # puts "#{s_internal}"
+        # find_brackets(s_internal, 0)
+        # calculate_blocks()
         number = CalcParser.extract_number(v)[0].to_f
         s[i] = get_result(op, number)
-        break
+        next
       end
       if CalcParser.is_square(v)
         number = CalcParser.extract_number(v)[0].to_f
+        # There are two situations where ^ can appear, x^ or (x*x)^, we check for both
+        # since the parser don't care
+        if number == 0
+          number = s[i - 1].to_f
+          s[i - 1] = "R"
+        end
         s[i] = get_result(op, number)
-        break
+        next
       end
-      left_operand = s[i - 1]
-      right_operand = s[i + 1]
-      # Important check, makes sure that there are no double or missing operators. Needs tidied and debug messages added
-      if CalcParser.is_operator(left_operand)
-        exit
-      elsif CalcParser.is_sqrt(left_operand)
-        exit
-      elsif CalcParser.is_bracket(left_operand)
-      end
-      if CalcParser.is_operator(right_operand)
-        exit
-      elsif CalcParser.is_sqrt(right_operand)
-        exit
-      elsif CalcParser.is_bracket(right_operand)
-      end
+      # We just assume that it's standard left and right operand operations at this point, maybe safe?
       left_operand, right_operand = assign_operands(s, i)
+      # Important check, makes sure that there are no double or missing operators. Needs tidied and debug messages added
+      if !CalcParser.is_number(left_operand) or !CalcParser.is_number(right_operand)
+        exit
+      end
       # Replaces the operator found with the answer found using the left and right operator
       s[i - 1] = "R"
       s[i + 1] = "R"
@@ -207,7 +218,7 @@ def perform_pedmas(s, start_i, end_i)
   calculate_blocks(s, start_i, end_i, "*", "/", "%")
   # do all add/sub
   calculate_blocks(s, start_i, end_i, "+", "-")
-  get_logger.debug("Removing elements tagged as 'R' #{s}")
+  get_logger.debug("Removing elements tagged as 'R' and 'B' #{s}")
   # Clean up
   s.delete("R")
   s.delete("B")
@@ -246,7 +257,7 @@ def find_brackets(s, i)
 end
 
 # better formatting
-s = $options[:operation].scan(/\d*\.?\d+\^?|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
+s = CalcParser.parse($options[:operation])
 # s = convert_ints_to_floats(s)
 
 # Do all brackets first
