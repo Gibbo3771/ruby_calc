@@ -20,13 +20,29 @@ module CalcParser
     return string.match?(/sqrt\(.+?\)+/)
   end
 
-  def CalcParser.parse_sqrt(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()]/)
+  def CalcParser.is_sin(string)
+    return string.match?(/sin\(.+?\)+/)
+  end
+
+  def CalcParser.is_cos(string)
+    return string.match?(/cos\(.+?\)+/)
+  end
+
+  def CalcParser.is_tan(string)
+    return string.match?(/tan\(.+?\)+/)
+  end
+
+  def CalcParser.is_log10(string)
+    return string.match?(/log10\(.+?\)+/)
   end
 
   # Check if the string is a number to be squared
   def CalcParser.is_square(string)
     return string.match?(/\d*\.?\d+\^|\^/)
+  end
+
+  def CalcParser.is_scientific_formula(string)
+    return string.match?(/sqrt\(.+?\)+|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+/)
   end
 
   # Check if the string is an open or close curly bracket
@@ -48,27 +64,26 @@ module CalcParser
   end
 
   def CalcParser.extract_operator(string)
-    return string.scan(/[-+\/*%\^]|sqrt/)
+    return string.scan(/[-+\/*%\^]|sqrt|sin|cos|tan|log10/)
   end
 
-  # Checks if any valid operator is in the given array
-  # TODO this needs renamed,
-  def CalcParser.is_any_in_array(arr)
-    for string in arr do
-      return true if string.match?(/\d*\.?\d+\^|[-+\/*%()^]|\sqrt\(.+?\)/)
-    end
-    return false
+  def CalcParser.extract_prefix(string)
+    return string.scan(/sqrt\(|sin\(|cos\(|tan\(|log10\(/)
   end
 
   # Checks the string for any operator
   def CalcParser.is_any(string)
-    return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(.+?\)/)
+    return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(.+?\)|cos\(.+?\)/)
     return false
   end
 
   # Checks if an operator is included in a list of given operators
   def CalcParser.includes_operator(*operators, v)
     return true if operators.include?("sqrt") && is_sqrt(v)
+    return true if operators.include?("sin") && is_sin(v)
+    return true if operators.include?("cos") && is_cos(v)
+    return true if operators.include?("tan") && is_tan(v)
+    return true if operators.include?("log10") && is_log10(v)
     return true if operators.include?("^") && is_square(v)
     return true if operators.include?(v)
     return false
@@ -80,7 +95,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)+|pi/)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pi/)
   end
 
 end
@@ -137,9 +152,16 @@ div = -> (*n) { get_logger.debug("Dividing #{n[0]} and #{n[1]}"); return n[0] / 
 mod = -> (*n) { get_logger.debug("Mod of #{n[0]} and #{n[1]}"); return n[0] % n[1]}
 square = -> (*n) { get_logger.debug("Squaring #{n[0]}"); return n[0] * n[0]}
 sqrt = -> (*n) { get_logger.debug("Calculating Square Root of #{n[0]}"); return Math.sqrt(n[0])}
+sin = -> (*n) { get_logger.debug("Calculating Sine of #{n[0]}"); return Math.sin(n[0])}
+cos = -> (*n) { get_logger.debug("Calculating Cosine of #{n[0]}"); return Math.cos(n[0])}
+tan = -> (*n) { get_logger.debug("Calculating Tangent of #{n[0]}"); return Math.tan(n[0])}
+log10 = -> (*n) { get_logger.debug("Calculating base 10 algorithm of #{n[0]}"); return Math.log10(n[0])}
+
+
+
 
 # Lookup table for operations
-$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt}
+$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt, "sin" => sin, "cos" => cos, "tan" => tan, "log10" => log10}
 # Lookup table for shorthands
 $shorthands = {"pi" => Math::PI}
 
@@ -177,14 +199,11 @@ def calculate_blocks(s, start_i, end_i, *operators)
     if CalcParser.includes_operator(*operators, v)
       op = CalcParser.extract_operator(v)[0]
       get_logger.debug("Found operator '#{op}'")
-      if CalcParser.is_sqrt(v)
+      if CalcParser.is_scientific_formula(v)
         # Since a sqrt calculation can have anything in the brackets, we need
         # check inside for a formula, recursive again
-        get_logger.debug("Deleting the sqrt brackets")
-        v = v.delete_prefix("sqrt(").delete_suffix(")")
-        get_logger.debug("Parsing sqrt formula")
+        v = v.delete_prefix(CalcParser.extract_prefix(v)[0]).delete_suffix(")")
         v = CalcParser.parse(v)
-        get_logger.debug("Sqrt formula is '#{v}'")
         perform_pedmas(v, 0, v.length - 1)
         number = v[0].to_f
         s[i] = get_result(op, number)
@@ -224,9 +243,9 @@ def perform_pedmas(s, start_i, end_i)
   # This might finally work, because a sqrt formula is only in a single element, this needs a
   # sanity check. This only occurs if the user enters literally one thing, and it's a
   # formula
-  return if s.length == 1 && !CalcParser.is_sqrt(s[0])
+  return if s.length == 1 && !CalcParser.is_scientific_formula(s[0])
   #do exponents
-  calculate_blocks(s, start_i, end_i, "^", "sqrt")
+  calculate_blocks(s, start_i, end_i, "^", "sqrt", "sin", "cos", "tan", "log10")
   # do all div/mul
   calculate_blocks(s, start_i, end_i, "*", "/", "%")
   # do all add/sub
