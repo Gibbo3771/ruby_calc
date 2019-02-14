@@ -34,6 +34,7 @@ The calculator at the moment uses ~~pretty strict formatting due to me shit with
 * Scientific functions must be enclosed in brackets
    
    This will not work `cos5` or `cos 5`
+   
    this will `cos(5)`
    
 
