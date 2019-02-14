@@ -51,11 +51,11 @@ module CalcParser
   end
 
   def CalcParser.is_shorthand(string)
-    return string.match?(/pi/)
+    return string.match?(/pi|the meaning of life/)
   end
 
   def CalcParser.extract_shorthand(string)
-    return string.scan(/pi/)
+    return string.scan(/pi|the meaning of life/)
   end
 
   # Extracts a number from a formula
@@ -95,7 +95,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pi/)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pi|the meaning of life/)
   end
 
 end
@@ -163,7 +163,7 @@ log10 = -> (*n) { get_logger.debug("Calculating base 10 algorithm of #{n[0]}"); 
 # Lookup table for operations
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt, "sin" => sin, "cos" => cos, "tan" => tan, "log10" => log10}
 # Lookup table for shorthands
-$shorthands = {"pi" => Math::PI}
+$shorthands = {"pi" => Math::PI, "the meaning of life" => 42}
 
 get_logger.debug("Lookup tables populated")
 
