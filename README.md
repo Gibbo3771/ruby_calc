@@ -31,6 +31,11 @@ The calculator at the moment uses ~~pretty strict formatting due to me shit with
    
    This will `"5 * ( 3 + 3 + 3 )"`
    
+* Scientific functions must be enclosed in brackets
+   
+   This will not work `cos5` or `cos 5`
+   this will `cos(5)`
+   
 
 ## Support operations
 
@@ -42,7 +47,10 @@ So far the calculator can handle
 * Modulas
 * Addition 
 * Subtraction
-* **NEW** Squareroot (single bracket operation at the moment)
+* **NEW** Squareroot ~~(single bracket operation at the moment)~~
+* **NEW** Sine
+* **NEW** Cosine
+* **NEW** Tangent
 
 
 A more complicated example is something like so:
@@ -66,4 +74,3 @@ The calculator supports various options, you can type `calc.rb -h` for a list, o
 `-l` Sets a delay for the verbose output, this allows you to slow down the program during debugging. Does not work if verbose is not enabled
 
 `-h` Displays a help screen listing all the options available
-
