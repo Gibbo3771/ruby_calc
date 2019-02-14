@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Isolated tests, add as neccessaryp
-
+clear
 echo "Positive number test"
 echo "Testing addition, expected result = 2"
 echo $(ruby ./calc.rb -o "2+2")
@@ -27,7 +27,7 @@ echo $(ruby ./calc.rb -o "10+6/2")
 echo "Testing PEDMAS (/ priority left to right), expected result = 13"
 echo $(ruby ./calc.rb -o "6/2+10")
 echo "Testing PEDMAS (^ priority left to right), expected result = 8"
-echo $(ruby ./calc.rb -o "2 + 2 + 2^)")
+echo $(ruby ./calc.rb -o "2 + 2 + 2^")
 echo "Testing PEDMAS (^ priority right to left), expected result = 8"
 echo $(ruby ./calc.rb -o "2 + 2 + 2^")
 echo "Testing PEDMAS (sqrt priority left to right), expected result = 8"
@@ -42,3 +42,10 @@ echo $(ruby ./calc.rb -o "3*5+(2*2+(3+3))")
 
 echo "Testing shorthands (PI), expected result = 6.283185307179586"
 echo $(ruby ./calc.rb -o "2 * pi")
+
+echo "Testing sqrt, expected result = 3"
+echo $(ruby ./calc.rb -o "sqrt(9)")
+echo "Testing sqrt (double nested), expected result = 3"
+echo $(ruby ./calc.rb -o "sqrt(sqrt(81))")
+echo "Testing sqrt multiple, expected result = 6"
+echo $(ruby ./calc.rb -o "sqrt(9) + sqrt(9)")

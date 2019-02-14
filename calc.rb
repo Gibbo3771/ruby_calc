@@ -17,7 +17,7 @@ module CalcParser
 
   # Check if the string is a square root formula
   def CalcParser.is_sqrt(string)
-    return string.match?(/sqrt\(.*\)/)
+    return string.match?(/sqrt\(.+?\)+/)
   end
 
   def CalcParser.parse_sqrt(string)
@@ -55,14 +55,14 @@ module CalcParser
   # TODO this needs renamed,
   def CalcParser.is_any_in_array(arr)
     for string in arr do
-      return true if string.match?(/\d*\.?\d+\^|[-+\/*%()^]|sqrt\(\d*\.?\d+\)/)
+      return true if string.match?(/\d*\.?\d+\^|[-+\/*%()^]|\sqrt\(.+?\)/)
     end
     return false
   end
 
   # Checks the string for any operator
   def CalcParser.is_any(string)
-    return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(\d*\.?\d+\)/)
+    return true if string.match?(/\d*\.?\d+\^|[-+\/*%()]|sqrt\(.+?\)/)
     return false
   end
 
@@ -80,7 +80,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(\d*\.?\d+\)|pi/)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)+|pi/)
   end
 
 end
@@ -136,7 +136,7 @@ mul = -> (*n) { get_logger.debug("Multiplying #{n[0]} and #{n[1]}"); return n[0]
 div = -> (*n) { get_logger.debug("Dividing #{n[0]} and #{n[1]}"); return n[0] / n[1]}
 mod = -> (*n) { get_logger.debug("Mod of #{n[0]} and #{n[1]}"); return n[0] % n[1]}
 square = -> (*n) { get_logger.debug("Squaring #{n[0]}"); return n[0] * n[0]}
-sqrt = -> (*n) { get_logger.debug("Square root of #{n[0]}"); return Math.sqrt(n[0])}
+sqrt = -> (*n) { get_logger.debug("Calculating Square Root of #{n[0]}"); return Math.sqrt(n[0])}
 
 # Lookup table for operations
 $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt}
@@ -162,12 +162,14 @@ end
 
 # Calculates invidual blocks of operator, such as 5 * 3 or 5 + 5
 def calculate_blocks(s, start_i, end_i, *operators)
+  # Length of 1 means we are finish calculating
+  return if s.length == 1
   # The reason you do this is because on the final pass, Rs won't me removed
   # before it does one last run, often Rs replace brackets and any number
   # multiplied by R is 0
   # If you don't remove the useless elements it all fucks up
+  # IF SOMETHING IS NOT DELETED, UNCOMMENT THIS
   s.delete("R")
-  get_logger.debug("Data is now #{s}")
   op_index = ""
   get_logger.debug("Calculating formula blocks with operators #{operators} in range #{start_i}..#{end_i} of #{s}")
   (start_i..end_i).each.with_index(start_i) { |i|
@@ -179,12 +181,14 @@ def calculate_blocks(s, start_i, end_i, *operators)
       get_logger.debug("Found operator '#{op}'")
       if CalcParser.is_sqrt(v)
         # Since a sqrt calculation can have anything in the brackets, we need
-        # check inside for a formula
-        # s_internal = CalcParser.parse_sqrt(v)
-        # puts "#{s_internal}"
-        # find_brackets(s_internal, 0)
-        # calculate_blocks()
-        number = CalcParser.extract_number(v)[0].to_f
+        # check inside for a formula, recursive again
+        get_logger.debug("Deleting the sqrt brackets")
+        v = v.delete_prefix("sqrt(").delete_suffix(")")
+        get_logger.debug("Parsing sqrt formula")
+        v = CalcParser.parse(v)
+        get_logger.debug("Sqrt formula is '#{v}'")
+        perform_pedmas(v, 0, v.length - 1)
+        number = v[0].to_f
         s[i] = get_result(op, number)
         next
       end
@@ -218,16 +222,19 @@ end
 
 def perform_pedmas(s, start_i, end_i)
   get_logger.debug("Now performing PEDMAS in range #{start_i}..#{end_i} of #{s}")
+  range = find_brackets(s, start_i)
   #do exponents
-  calculate_blocks(s, start_i, end_i, "^", "sqrt")
+  calculate_blocks(s, range.first, range.last, "^", "sqrt")
   # do all div/mul
-  calculate_blocks(s, start_i, end_i, "*", "/", "%")
+  calculate_blocks(s, range.first, range.last, "*", "/", "%")
   # do all add/sub
-  calculate_blocks(s, start_i, end_i, "+", "-")
+  calculate_blocks(s, range.first, range.last, "+", "-")
   get_logger.debug("Removing elements tagged as 'R' and 'B' #{s}")
   # Clean up
   s.delete("R")
   s.delete("B")
+
+  perform_pedmas(s, 0, s.length - 1) if s.length > 1
 end
 
 # Find all the brackets (open and closed) to conform to PEDMAS
@@ -235,7 +242,7 @@ def find_brackets(s, i)
   get_logger.debug("Removing elements tagged as 'B' #{s}")
   # If you don't remove the useless elements it all fucks up
   s.delete("B")
-  get_logger.debug("Data is now #{s}")
+  # get_logger.debug("Formula is now #{s}")
   start_i = 0
   end_i = 0
   get_logger.debug("Finding brackets in formula '#{s}'' starting at index '#{i}', this is recursive so don't panic if it calls multiple times")
@@ -253,27 +260,20 @@ def find_brackets(s, i)
     if s[y] == ")"
       get_logger.debug("Found close bracket at index '#{y}', tagging it as B")
       s[y] = "B"
-      end_i = y
+      end_i = y - 1
       has_opening_bracket = false
       perform_pedmas(s, i, end_i)
-      break
+      return start_i, end_i
     end
     get_logger.debug("Found value '#{s[y]}' at index '#{y}'")
   }
+  return i, s.length - 1
 end
 
 # better formatting
 s = CalcParser.parse($options[:operation])
 
-# Do all brackets first
-find_brackets(s, 0)
-# do everything now outside brackets
-# while contains_operator(s, 0, s.length, *$operators) do
-get_logger().debug("Final pass starting...")
-# Do final passes, we do this until we end up with one result
-while CalcParser.is_any_in_array(s) do
-  perform_pedmas(s, 0, s.length - 1)
-end
+perform_pedmas(s, 0, s.length - 1)
 
 # Output result
 puts s.length == 1 ? "Result: #{s[0].scan(/\d*\.?\d+0?/)[0]}" : "Could not calculate answer, this is usually due to incorrect formatting. Sorry it's cryptic, working on it :)"
