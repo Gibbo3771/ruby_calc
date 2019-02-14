@@ -162,8 +162,6 @@ end
 
 # Calculates invidual blocks of operator, such as 5 * 3 or 5 + 5
 def calculate_blocks(s, start_i, end_i, *operators)
-  # Length of 1 means we are finish calculating
-  return if s.length == 1
   # The reason you do this is because on the final pass, Rs won't me removed
   # before it does one last run, often Rs replace brackets and any number
   # multiplied by R is 0
@@ -223,12 +221,16 @@ end
 def perform_pedmas(s, start_i, end_i)
   get_logger.debug("Now performing PEDMAS in range #{start_i}..#{end_i} of #{s}")
   range = find_brackets(s, start_i)
+  # This might finally work, because a sqrt formula is only in a single element, this needs a
+  # sanity check. This only occurs if the user enters literally one thing, and it's a
+  # formula
+  return if s.length == 1 && !CalcParser.is_sqrt(s[0])
   #do exponents
-  calculate_blocks(s, range.first, range.last, "^", "sqrt")
+  calculate_blocks(s, start_i, end_i, "^", "sqrt")
   # do all div/mul
-  calculate_blocks(s, range.first, range.last, "*", "/", "%")
+  calculate_blocks(s, start_i, end_i, "*", "/", "%")
   # do all add/sub
-  calculate_blocks(s, range.first, range.last, "+", "-")
+  calculate_blocks(s, start_i, end_i, "+", "-")
   get_logger.debug("Removing elements tagged as 'R' and 'B' #{s}")
   # Clean up
   s.delete("R")
