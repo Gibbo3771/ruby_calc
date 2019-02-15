@@ -7,7 +7,7 @@ module CalcParser
 
   # Checks if a given string is a number
   def CalcParser.is_number(string)
-    return string.match?(/\d*\.?\d+/)
+    return string.match?(/-?\d*\.?\d+/)
   end
 
   # Checks if the string is a operator
