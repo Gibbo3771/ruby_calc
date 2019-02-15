@@ -41,8 +41,12 @@ module CalcParser
     return string.match?(/\d*\.?\d+\^|\^/)
   end
 
+  def CalcParser.is_pow(string)
+    return string.match?(/pow\(.+?\)/)
+  end
+
   def CalcParser.is_scientific_formula(string)
-    return string.match?(/sqrt\(.+?\)+|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+/)
+    return string.match?(/sqrt\(.+?\)+|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pow\(.+?\)+/)
   end
 
   # Check if the string is an open or close curly bracket
@@ -64,11 +68,11 @@ module CalcParser
   end
 
   def CalcParser.extract_operator(string)
-    return string.scan(/[-+\/*%\^]|sqrt|sin|cos|tan|log10/)
+    return string.scan(/[-+\/*%\^]|sqrt|sin|cos|tan|log10|pow/)
   end
 
   def CalcParser.extract_prefix(string)
-    return string.scan(/sqrt\(|sin\(|cos\(|tan\(|log10\(/)
+    return string.scan(/sqrt\(|sin\(|cos\(|tan\(|log10\(|pow\(/)
   end
 
   # Checks the string for any operator
@@ -84,6 +88,7 @@ module CalcParser
     return true if operators.include?("cos") && is_cos(v)
     return true if operators.include?("tan") && is_tan(v)
     return true if operators.include?("log10") && is_log10(v)
+    return true if operators.include?("pow") && is_pow(v)
     return true if operators.include?("^") && is_square(v)
     return true if operators.include?(v)
     return false
@@ -95,7 +100,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pi|the meaning of life/)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pow\(.+?\)|pi|the meaning of life/)
   end
 
 end
@@ -156,16 +161,25 @@ sin = -> (*n) { get_logger.debug("Calculating Sine of #{n[0]}"); return Math.sin
 cos = -> (*n) { get_logger.debug("Calculating Cosine of #{n[0]}"); return Math.cos(n[0])}
 tan = -> (*n) { get_logger.debug("Calculating Tangent of #{n[0]}"); return Math.tan(n[0])}
 log10 = -> (*n) { get_logger.debug("Calculating base 10 algorithm of #{n[0]}"); return Math.log10(n[0])}
-
-
+pow = -> (*n) { get_logger.debug("Calculating #{n[0]}^#{n[1]}"); return pow(n[0], n[1])}
 
 
 # Lookup table for operations
-$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt, "sin" => sin, "cos" => cos, "tan" => tan, "log10" => log10}
+$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt, "sin" => sin, "cos" => cos, "tan" => tan, "log10" => log10, "pow" => pow}
 # Lookup table for shorthands
 $shorthands = {"pi" => Math::PI, "the meaning of life" => 42}
 
 get_logger.debug("Lookup tables populated")
+
+
+def pow(n, base)
+  return n if base < n
+  r = 0
+  (1..base - 1).each do |i|
+    r += n * n
+  end
+  return r
+end
 
 # Returns the result of the given operator and number
 def get_result(operator, *n)
@@ -200,11 +214,12 @@ def calculate_blocks(s, start_i, end_i, *operators)
       op = CalcParser.extract_operator(v)[0]
       get_logger.debug("Found operator '#{op}'")
       if CalcParser.is_scientific_formula(v)
-        # Since a sqrt calculation can have anything in the brackets, we need
+        # Since a scientific formula can have anything in the brackets, we need
         # check inside for a formula, recursive again
         v = v.delete_prefix(CalcParser.extract_prefix(v)[0]).delete_suffix(")")
         v = CalcParser.parse(v)
         perform_pedmas(v, 0, v.length - 1)
+        puts v
         number = v[0].to_f
         s[i] = get_result(op, number)
         next
@@ -240,12 +255,12 @@ end
 def perform_pedmas(s, start_i, end_i)
   get_logger.debug("Now performing PEDMAS in range #{start_i}..#{end_i} of #{s}")
   range = find_brackets(s, start_i)
-  # This might finally work, because a sqrt formula is only in a single element, this needs a
+  # This might finally work, because a scientific formula is only in a single element, this needs a
   # sanity check. This only occurs if the user enters literally one thing, and it's a
   # formula
   return if s.length == 1 && !CalcParser.is_scientific_formula(s[0])
   #do exponents
-  calculate_blocks(s, start_i, end_i, "^", "sqrt", "sin", "cos", "tan", "log10")
+  calculate_blocks(s, start_i, end_i, "^", "sqrt", "sin", "cos", "tan", "log10", "pow")
   # do all div/mul
   calculate_blocks(s, start_i, end_i, "*", "/", "%")
   # do all add/sub
@@ -267,7 +282,6 @@ def find_brackets(s, i)
   start_i = 0
   end_i = 0
   get_logger.debug("Finding brackets in formula '#{s}'' starting at index '#{i}', this is recursive so don't panic if it calls multiple times")
-  # Find brackets in s
   (i..s.length - 1).each.with_index(i) { |y|
     break if y > s.length - 1
     if s[y] == "("
@@ -294,6 +308,7 @@ end
 # better formatting
 s = CalcParser.parse($options[:operation])
 
+# Uses recursion
 perform_pedmas(s, 0, s.length - 1)
 
 # Output result
