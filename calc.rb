@@ -100,11 +100,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-<<<<<<< HEAD
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pow\(.+?\)|pi|the meaning of life/)
-=======
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pi|the meaning of life/)
->>>>>>> master
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+?|pow\(.+?\)+|pi|the meaning of life/)
   end
 
 end
@@ -165,7 +161,7 @@ sin = -> (*n) { get_logger.debug("Calculating Sine of #{n[0]}"); return Math.sin
 cos = -> (*n) { get_logger.debug("Calculating Cosine of #{n[0]}"); return Math.cos(n[0])}
 tan = -> (*n) { get_logger.debug("Calculating Tangent of #{n[0]}"); return Math.tan(n[0])}
 log10 = -> (*n) { get_logger.debug("Calculating base 10 algorithm of #{n[0]}"); return Math.log10(n[0])}
-pow = -> (*n) { get_logger.debug("Calculating #{n[0]}^#{n[1]}"); return pow(n[0], n[1])}
+pow = -> (*n) { get_logger.debug("Calculating #{n[0]}^#{n[1]}"); return n[0] ** n[1]}
 
 
 # Lookup table for operations
@@ -174,16 +170,6 @@ $operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%
 $shorthands = {"pi" => Math::PI, "the meaning of life" => 42}
 
 get_logger.debug("Lookup tables populated")
-
-
-def pow(n, base)
-  return n if base < n
-  r = 0
-  (1..base - 1).each do |i|
-    r += n * n
-  end
-  return r
-end
 
 # Returns the result of the given operator and number
 def get_result(operator, *n)
@@ -222,10 +208,13 @@ def calculate_blocks(s, start_i, end_i, *operators)
         # check inside for a formula, recursive again
         v = v.delete_prefix(CalcParser.extract_prefix(v)[0]).delete_suffix(")")
         v = CalcParser.parse(v)
-        perform_pedmas(v, 0, v.length - 1)
-        puts v
-        number = v[0].to_f
-        s[i] = get_result(op, number)
+        # Pow uses a special format
+        if op == "pow"
+          s[i] = get_result(op, v[0].to_f, v[1].to_f)
+        else
+          perform_pedmas(v, 0, v.length - 1)
+          s[i] = get_result(op, v[0].to_f)
+        end
         next
       end
       if CalcParser.is_square(v)
