@@ -7,7 +7,7 @@ module CalcParser
 
   # Checks if a given string is a number
   def CalcParser.is_number(string)
-    return string.match?(/\d*\.?\d+/)
+    return string.match?(/-?\d*\.?\d+/)
   end
 
   # Checks if the string is a operator
@@ -120,7 +120,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|asin\(.+?\)+|acos\(.+?\)+|atan\(.+?\)+|atan2\(.+?\)+|log10\(.+?\)+?|pow\(.+?\)+|pi|the meaning of life/)
+    return string.scan(/-?\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|asin\(.+?\)+|acos\(.+?\)+|atan\(.+?\)+|atan2\(.+?\)+|log10\(.+?\)+?|pow\(.+?\)+|pi|the meaning of life/)
   end
 
 end
