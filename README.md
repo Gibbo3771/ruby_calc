@@ -30,6 +30,11 @@ The calculator at the moment uses ~~pretty strict formatting due to me shit with
    This will not work `"5 ( 3 + 3 )"`
    
    This will `"5 * ( 3 + 3 + 3 )"`
+* Working with negative numbers, spacing is important for the parser! The negative qualifier must be directly to the left of   the number
+   
+   This will not work, 1 will not be interpreted as a negative number `5 - - 1`
+   
+   This will `5- -1` or `5--1` or `5 --1`
    
 * Scientific functions must be enclosed in brackets
    
@@ -52,10 +57,16 @@ So far the calculator can handle
 * **NEW** Sine
 * **NEW** Cosine
 * **NEW** Tangent
+* **NEW** Arc Sine
+* **NEW** Arc Cosine
+* **NEW** Arc Tangent
+
+*Please see the scientific section below for formatting.
 
 
 A more complicated example is something like so:
    `"1.5 * ( 5 + 8.25 ^ - ( 0.5 + 0.25 ) ) / 2"`
+   
    
 ## Shorthands
 
@@ -63,6 +74,20 @@ At the moment the calculator supports very little shorthands, but you can pass i
 formula    
 
    Constant PI - `2 * pi`
+   
+   
+## Scientific Format
+
+In order to use the scientific functions, they must be formatted in a particular way. Most of the functions are, however, very similar.
+
+`calc.rb -o "scientific_function(value)"`
+
+Apples to - sin, cos, tan, asin, acos, atan, atan2
+
+`calc.rb -o "scientific_function(value, exponent)`
+
+Applies to - pow
+
    
 ## Options
 
