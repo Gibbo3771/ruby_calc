@@ -95,7 +95,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pi|the meaning of life/)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pi|the meaning of life/)
   end
 
 end
