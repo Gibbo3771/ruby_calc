@@ -24,12 +24,28 @@ module CalcParser
     return string.match?(/sin\(.+?\)+/)
   end
 
+  def CalcParser.is_asin(string)
+    return string.match?(/asin\(.+?\)+/)
+  end
+
   def CalcParser.is_cos(string)
     return string.match?(/cos\(.+?\)+/)
   end
 
+  def CalcParser.is_acos(string)
+    return string.match?(/acos\(.+?\)+/)
+  end
+
   def CalcParser.is_tan(string)
     return string.match?(/tan\(.+?\)+/)
+  end
+
+  def CalcParser.is_atan(string)
+    return string.match?(/atan\(.+?\)+/)
+  end
+
+  def CalcParser.is_atan2(string)
+    return string.match?(/atan2\(.+?\)+/)
   end
 
   def CalcParser.is_log10(string)
@@ -46,7 +62,7 @@ module CalcParser
   end
 
   def CalcParser.is_scientific_formula(string)
-    return string.match?(/sqrt\(.+?\)+|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+|pow\(.+?\)+/)
+    return string.match?(/sqrt\(.+?\)+|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|asin\(.+?\)+|acos\(.+?\)+|atan\(.+?\)+|atan\(.+?\)+|log10\(.+?\)+|pow\(.+?\)+/)
   end
 
   # Check if the string is an open or close curly bracket
@@ -68,7 +84,7 @@ module CalcParser
   end
 
   def CalcParser.extract_operator(string)
-    return string.scan(/[-+\/*%\^]|sqrt|sin|cos|tan|log10|pow/)
+    return string.scan(/[-+\/*%\^]|sqrt|sin|cos|tan|asin|acos|atan|atan2|log10|pow/)
   end
 
   def CalcParser.extract_prefix(string)
@@ -85,8 +101,12 @@ module CalcParser
   def CalcParser.includes_operator(*operators, v)
     return true if operators.include?("sqrt") && is_sqrt(v)
     return true if operators.include?("sin") && is_sin(v)
+    return true if operators.include?("asin") && is_asin(v)
     return true if operators.include?("cos") && is_cos(v)
+    return true if operators.include?("acos") && is_acos(v)
     return true if operators.include?("tan") && is_tan(v)
+    return true if operators.include?("atan") && is_atan(v)
+    return true if operators.include?("atan2") && is_atan2(v)
     return true if operators.include?("log10") && is_log10(v)
     return true if operators.include?("pow") && is_pow(v)
     return true if operators.include?("^") && is_square(v)
@@ -100,7 +120,7 @@ module CalcParser
 
   # Parses a string into an array of valid numbers and operators
   def CalcParser.parse(string)
-    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|log10\(.+?\)+?|pow\(.+?\)+|pi|the meaning of life/)
+    return string.scan(/\d*\.?\d+\^?|[-+\/*%()^]|sqrt\(.+?\)|sin\(.+?\)+|cos\(.+?\)+|tan\(.+?\)+|asin\(.+?\)+|acos\(.+?\)+|atan\(.+?\)+|atan2\(.+?\)+|log10\(.+?\)+?|pow\(.+?\)+|pi|the meaning of life/)
   end
 
 end
@@ -158,14 +178,20 @@ mod = -> (*n) { get_logger.debug("Mod of #{n[0]} and #{n[1]}"); return n[0] % n[
 square = -> (*n) { get_logger.debug("Squaring #{n[0]}"); return n[0] * n[0]}
 sqrt = -> (*n) { get_logger.debug("Calculating Square Root of #{n[0]}"); return Math.sqrt(n[0])}
 sin = -> (*n) { get_logger.debug("Calculating Sine of #{n[0]}"); return Math.sin(n[0])}
+asin = -> (*n) { get_logger.debug("Calculating Arc Sine of #{n[0]}"); return Math.asin(n[0])}
 cos = -> (*n) { get_logger.debug("Calculating Cosine of #{n[0]}"); return Math.cos(n[0])}
+acos = -> (*n) { get_logger.debug("Calculating Arc Cosine of #{n[0]}"); return Math.acos(n[0])}
 tan = -> (*n) { get_logger.debug("Calculating Tangent of #{n[0]}"); return Math.tan(n[0])}
+atan = -> (*n) { get_logger.debug("Calculating Arc Tangent of #{n[0]}"); return Math.atan(n[0])}
+atan2 = -> (*n) { get_logger.debug("Calculating Arc Tangent (using atan2) of #{n[0]}"); return Math.atan2(n[0])}
 log10 = -> (*n) { get_logger.debug("Calculating base 10 algorithm of #{n[0]}"); return Math.log10(n[0])}
 pow = -> (*n) { get_logger.debug("Calculating #{n[0]}^#{n[1]}"); return n[0] ** n[1]}
 
 
 # Lookup table for operations
-$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod, "sqrt" => sqrt, "sin" => sin, "cos" => cos, "tan" => tan, "log10" => log10, "pow" => pow}
+$operations = {"+" => add, "-" => sub, "*" => mul, "/" => div, "^" => square, "%" => mod,
+               "sqrt" => sqrt, "sin" => sin, "cos" => cos, "tan" => tan, "log10" => log10,
+               "pow" => pow, "asin" => asin, "acos" => acos, "atan" => atan, "atan2" => atan2}
 # Lookup table for shorthands
 $shorthands = {"pi" => Math::PI, "the meaning of life" => 42}
 
@@ -253,7 +279,7 @@ def perform_pedmas(s, start_i, end_i)
   # formula
   return if s.length == 1 && !CalcParser.is_scientific_formula(s[0])
   #do exponents
-  calculate_blocks(s, start_i, end_i, "^", "sqrt", "sin", "cos", "tan", "log10", "pow")
+  calculate_blocks(s, start_i, end_i, "^", "sqrt", "sin", "cos", "tan", "log10", "pow", "asin", "acos", "atan", "atan2" )
   # do all div/mul
   calculate_blocks(s, start_i, end_i, "*", "/", "%")
   # do all add/sub
