@@ -53,13 +53,13 @@ So far the calculator can handle
 * Modulas
 * Addition 
 * Subtraction
-* **NEW** Squareroot ~~(single bracket operation at the moment)~~
-* **NEW** Sine
-* **NEW** Cosine
-* **NEW** Tangent
-* **NEW** Arc Sine
-* **NEW** Arc Cosine
-* **NEW** Arc Tangent
+* Squareroot ~~(single bracket operation at the moment)~~
+* Sine
+* Cosine
+* Tangent
+* Arc Sine
+* Arc Cosine
+* Arc Tangent
 
 *Please see the scientific section below for formatting.
 
